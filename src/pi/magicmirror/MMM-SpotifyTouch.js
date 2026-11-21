@@ -1,7 +1,7 @@
 /* Optional MagicMirror button: asks the persistent kiosk controller to show Spotify.
    The MagicMirror Node.js server stays running; the viewer navigates pages. */
 Module.register('MMM-SpotifyTouch', {
-  defaults: {},
+  defaults: { anchorSelector: '.kuma-summary' },
   start() {
     this.launcher = null;
     this.positionTimer = setInterval(() => this.reposition(), 2000);
@@ -33,8 +33,18 @@ Module.register('MMM-SpotifyTouch', {
   },
   reposition() {
     if (!this.launcher?.isConnected) return;
-    const kuma = document.querySelector('.kuma-summary');
-    if (!kuma) { this.launcher.style.visibility = 'hidden'; return; }
+    const kuma = document.querySelector(this.config.anchorSelector);
+    if (!kuma) {
+      // Generic MagicMirror setups may not have the author's Kuma widget.
+      // Fall back to a top-right launcher; keep the touch target visible.
+      const size = 72;
+      this.launcher.style.width = size + 'px';
+      this.launcher.style.height = size + 'px';
+      this.launcher.style.left = Math.max(6, window.innerWidth-size-14) + 'px';
+      this.launcher.style.top = '14px';
+      this.launcher.style.visibility = 'visible';
+      return;
+    }
     const r = kuma.getBoundingClientRect();
     if (r.width < 10 || r.height < 10) { this.launcher.style.visibility = 'hidden'; return; }
     // Scale with the Kuma status block but avoid obscuring it or the viewport.

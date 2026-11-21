@@ -2,7 +2,7 @@
 
 Touch-first Spotify controller for small Raspberry Pi displays, with an optional MagicMirror² kiosk integration.
 
-> **Status: source consolidation in progress.** This is a documentation-first public repository. The complete, portable installer is **not yet published or verified**. Do not attempt to install from this repository yet.
+> **Status: beta installation wizards are available on the draft PR.** They pass offline tests but are **not yet hardware-tested on fresh Ubuntu/Pi installs**. Do not run them on an existing working SpotifyTouch setup.
 
 ## What the working prototype does
 
@@ -73,3 +73,7 @@ Read [architecture](docs/architecture.md), [current integration gaps](docs/integ
 5. Publish a versioned release and then integrate it optionally with MagicMirrorPiO2W.
 
 **Do not run the old version-specific migration scripts as if they were a new-machine installer.**
+
+## Beta installation wizards
+
+Run the Ubuntu wizard first, then the Pi wizard. Each offers a confirmation screen, systemd service configuration, backups and rollback. The Pi wizard offers Spotify-only kiosk or MagicMirror companion. **Read [beta installation instructions](docs/installation.md) before applying.** Both wizards support `--dry-run`. These scripts are staged in an unmerged draft PR and are not yet a tagged release.

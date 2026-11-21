@@ -21,7 +21,7 @@ The files under `src/` were consolidated from the author's tested SpotifyTouch v
 
 ## Deliberately not claimed
 
-- This is **not yet a published, clean-install release**. Legacy update installers depended on prior versions and must not be run on a new Pi. A guarded, clean installer and rollback require testing.
+- This is **not yet a validated clean-install release**. `scripts/install-ubuntu.sh` and `scripts/install-pi.sh` now provide guarded beta wizards with saved rollback manifests and offline tests. They remain untested on a completely fresh Pi or Ubuntu host. Legacy version-specific update installers must not be used as clean installers.
 - The standalone Pi profile (`SPOTIFY_KIOSK_MODE=standalone`) is preliminary. It needs an independently installed Electron binary and has not been tested without MagicMirror on real Pi hardware.
 - The original Spotify Headless container's HTTP audio endpoint and build lifecycle have not been independently reproduced from a fresh container.
 - The exact OCI image digest for a reproducible multi-platform pull needs to be selected and verified. The live host reported two RepoDigests for the `latest` image; neither is being assumed authoritative for a new install.
@@ -32,3 +32,7 @@ The files under `src/` were consolidated from the author's tested SpotifyTouch v
 The source files do not include Spotify Headless, proprietary Spotify binaries, persisted user authentication, browser profiles or Spicetify packages. Install them separately from upstream after reviewing their terms. Upstream repository currently does not declare a license. Do not mirror its code into this repository.
 
 A first release should be gated on fresh-install testing (Ubuntu and Pi), rollback, security review and end-to-end playback/artist navigation.
+
+## Beta interactive installers
+
+The two host-specific installers live under `scripts/` and are documented in `docs/installation.md`. `--dry-run` is safe to test. The wizards refuse to overwrite an existing SpotifyTouch API or kiosk deployment, and they do not automatically modify the Pi login session. They do not claim fresh-device or standalone hardware verification.
