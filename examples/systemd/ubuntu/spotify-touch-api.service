@@ -1,0 +1,16 @@
+# Reference template, not yet a standalone installer.
+# Install at ~/.config/systemd/user/spotify-touch-api.service after deploying server.py.
+[Unit]
+Description=SpotifyTouch local control API
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.local/share/spotify-touch
+ExecStart=/usr/bin/python3 %h/.local/share/spotify-touch/server.py
+Environment=SPOTIFY_TOUCH_PORT=16080
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
