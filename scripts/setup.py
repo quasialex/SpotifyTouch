@@ -451,11 +451,15 @@ def configure_ubuntu(args):
 def inject_magicmirror_module(config):
     if 'MMM-SpotifyTouch' in config:
         return config
-    matches = list(re.finditer(r'\bmodules\s*:\s*\[', config))
-    if len(matches) != 1:
-        fail('MagicMirror config must have exactly one modules: [ declaration; edit it manually.')
-    pos = matches[0].end()
-    return config[:pos] + '\n    { module: "MMM-SpotifyTouch", position: "top_left" },' + config[pos:]
+    # Insert into the first top-level module list. MMM-pages has its own
+    # nested "modules: [ ... ]" list, so counting both rejects valid dashboards.
+    match = re.search(r'\bmodules\s*:\s*\[', config)
+    if not match:
+        fail('MagicMirror config needs a modules: [ declaration.')
+    pos = match.end()
+    return (config[:pos] +
+            '\n    { module: "MMM-SpotifyTouch", position: "fullscreen_above", '
+            'classes: "page-home spotify-touch-host" },' + config[pos:])
 
 
 def configure_pi(args):
