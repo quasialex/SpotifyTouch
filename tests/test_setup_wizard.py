@@ -30,13 +30,35 @@ class SetupTests(unittest.TestCase):
         api=setup.unit_ubuntu()
         self.assertIn('EnvironmentFile=%h/.config/spotifytouch/ubuntu.env',api)
         self.assertIn('WorkingDirectory=%h/.local/share/spotifytouch/ubuntu',api)
-        audio=setup.unit_pi_audio('http://ubuntu.example.lan:18080/spotify.ts')
+        audio=setup.unit_pi_audio()
         self.assertNotIn('[Install]',audio)
-        self.assertIn('--cache=no',audio)
-        tunnel=setup.unit_pi_tunnel('spotify','ubuntu.example.lan','/home/pi/.ssh/id_ed25519')
-        self.assertIn('BatchMode=yes',tunnel)
-        self.assertIn('StrictHostKeyChecking=yes',tunnel)
-        self.assertIn('-L 127.0.0.1:16080:127.0.0.1:16080',tunnel)
+        self.assertIn('EnvironmentFile=%h/.config/spotifytouch/pi.env',audio)
+        self.assertIn('launch-audio.sh',audio)
+        tunnel=setup.unit_pi_tunnel()
+        self.assertIn('EnvironmentFile=%h/.config/spotifytouch/pi.env',tunnel)
+        self.assertIn('launch-tunnel.sh',tunnel)
+        self.assertNotIn('ubuntu.example.lan',tunnel)
+
+    def test_pi_ubuntu_host_declared_only_once(self):
+        """Audio and tunnel services share the same host in pi.env."""
+        src=(ROOT/'scripts/setup.py').read_text()
+        self.assertEqual(src.count("'SPOTIFY_UBUNTU_HOST':host"),1)
+        self.assertNotIn('ubuntu.example.lan', setup.unit_pi_tunnel())
+        self.assertNotIn('ubuntu.example.lan', setup.unit_pi_audio())
+        audio=(ROOT/'src/pi/kiosk/launch-audio.sh').read_text()
+        tunnel=(ROOT/'src/pi/kiosk/launch-tunnel.sh').read_text()
+        self.assertIn('SPOTIFY_UBUNTU_HOST', audio)
+        self.assertIn('SPOTIFY_UBUNTU_HOST', tunnel)
+        self.assertIn('SPOTIFY_AUDIO_URL_OVERRIDE', audio)
+        self.assertIn('SPOTIFY_SSH_IDENTITY_FILE', tunnel)
+        self.assertIn('StrictHostKeyChecking=yes', tunnel)
+
+    def test_existing_install_guard_before_key_or_electron_changes(self):
+        src=(ROOT/'scripts/setup.py').read_text()
+        start=src.index('def configure_pi(args):')
+        guard=src.index("if (APP_PI/'switchd.py').exists()",start)
+        self.assertLess(guard,src.index("run(['npm','install'",start))
+        self.assertLess(guard,src.index("run(['ssh-keygen'",start))
 
     def test_magicmirror_module_addition_is_conservative(self):
         before='let config = { modules: [\n {module: "clock"},\n] };\nmodule.exports = config;'

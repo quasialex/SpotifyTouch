@@ -263,29 +263,31 @@ WantedBy=default.target
 '''
 
 
-def unit_pi_audio(url):
-    return f'''[Unit]
+def unit_pi_audio():
+    return '''[Unit]
 Description=SpotifyTouch on-demand audio consumer
 After=pipewire-pulse.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/mpv --no-video --ao=pulse --force-window=no --no-terminal --profile=low-latency --cache=no --demuxer-readahead-secs=0 --audio-buffer=0.12 {url}
+EnvironmentFile=%h/.config/spotifytouch/pi.env
+ExecStart=%h/.local/share/spotify-appliance-v2-kiosk/launch-audio.sh
 Restart=on-failure
 RestartSec=3
 # Intentionally no Install section. The controller starts/stops audio.
 '''
 
 
-def unit_pi_tunnel(user, host, key):
-    return f'''[Unit]
+def unit_pi_tunnel():
+    return '''[Unit]
 Description=SSH tunnel to Ubuntu SpotifyTouch control API
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/ssh -N -T -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=yes -i {key} -L 127.0.0.1:16080:127.0.0.1:16080 {user}@{host}
+EnvironmentFile=%h/.config/spotifytouch/pi.env
+ExecStart=%h/.local/share/spotify-appliance-v2-kiosk/launch-tunnel.sh
 Restart=always
 RestartSec=5
 
@@ -335,7 +337,11 @@ def configure_ubuntu(args):
         fail('Unsafe container name')
     mode = args.container_mode
     if not mode:
-        mode = ask('Use (1) existing Spotify Headless container or (2) create new one?', '1', noninteractive=args.yes)
+        found = (shutil.which('podman') is not None and
+                 run(['podman','container','exists',container],check=False).returncode == 0)
+        recommended = '1' if found else '2'
+        mode = ask('Use (1) existing Spotify Headless container or (2) create new one?',
+                   recommended, noninteractive=args.yes)
         mode = {'1':'existing','2':'create'}.get(mode,mode)
     if mode not in ('existing', 'create'):
         fail('Container mode must be existing or create')
@@ -483,6 +489,9 @@ def configure_pi(args):
         summary.append('Standalone Electron installation may be required; no MagicMirror needed')
     if not choose_confirmation(args, summary):
         return
+    # A fresh-install wizard must not change the current appliance, including SSH keys.
+    if (APP_PI/'switchd.py').exists() or (USER_UNITS/'spotify-appliance-switch.service').exists():
+        fail('Existing SpotifyTouch kiosk detected. This installer is for new setups only.')
     for tool in ('systemctl','ssh','python3','mpv','curl','labwc'):
         which(tool)
     if mac:
@@ -530,8 +539,6 @@ def configure_pi(args):
         run(ssh_check)
     if not Path('/usr/share/wayland-sessions/labwc.desktop').exists() and not Path('/usr/share/wayland-sessions/rpd-labwc.desktop').exists():
         fail('Pi needs a configured labwc/Wayland session. Install/enable labwc first.')
-    if (APP_PI/'switchd.py').exists() or (USER_UNITS/'spotify-appliance-switch.service').exists():
-        fail('Existing SpotifyTouch kiosk detected. Beta wizard is for fresh installs; do not overwrite your working appliance.')
     unit_names = ['spotify-appliance-switch.service','spotify-appliance-kiosk.service',
                   'spotify-appliance-audio.service','spotify-tunnel.service']
     tx = Transaction('pi',unit_names)
@@ -540,13 +547,19 @@ def configure_pi(args):
     try:
         for name in unit_names:
             run(['systemctl','--user','stop',name],check=False)
-        for path in [ROOT/'src/pi/controller/switchd.py',ROOT/'src/pi/kiosk/electron-kiosk.js',ROOT/'src/pi/kiosk/launch-viewer.sh']:
+        for path in [ROOT/'src/pi/controller/switchd.py',ROOT/'src/pi/kiosk/electron-kiosk.js',ROOT/'src/pi/kiosk/launch-viewer.sh',
+                     ROOT/'src/pi/kiosk/launch-audio.sh', ROOT/'src/pi/kiosk/launch-tunnel.sh']:
             tx.copy(path, APP_PI/path.name, 0o755 if path.suffix == '.sh' else 0o644)
         for path in ['minimal-session.sh','patch_launcher.py']:
             tx.copy(ROOT/'src/pi/session'/path, APP_PI/path, 0o755)
         tx.save(CONFIG/'pi.env',env_file({
             'SPOTIFY_KIOSK_MODE':'standalone' if profile=='standalone' else 'mirror',
             'SPOTIFY_BLUETOOTH_MAC':mac,
+            'SPOTIFY_UBUNTU_HOST':host,
+            'SPOTIFY_UBUNTU_USER':user,
+            'SPOTIFY_SSH_IDENTITY_FILE':str(key),
+            'SPOTIFY_AUDIO_PORT':str(args.stream_port),
+            'SPOTIFY_AUDIO_URL_OVERRIDE':stream if args.audio_url else '',
             'SPOTIFY_ELECTRON_BIN':str(electron),
             'MAGICMIRROR_URL':'http://[::1]:8080/',
             'SPOTIFY_CONTROL_PORT':str(CONTROL_PORT),
@@ -554,8 +567,8 @@ def configure_pi(args):
         }),0o600)
         user_unit(tx,'spotify-appliance-switch.service',unit_pi_switch())
         user_unit(tx,'spotify-appliance-kiosk.service',unit_pi_kiosk())
-        user_unit(tx,'spotify-appliance-audio.service',unit_pi_audio(stream))
-        user_unit(tx,'spotify-tunnel.service',unit_pi_tunnel(user,host,str(key)))
+        user_unit(tx,'spotify-appliance-audio.service',unit_pi_audio())
+        user_unit(tx,'spotify-tunnel.service',unit_pi_tunnel())
         if profile=='companion':
             mm_module=mm_dir/'modules/MMM-SpotifyTouch'
             for name in ['MMM-SpotifyTouch.js','MMM-SpotifyTouch.css','node_helper.js','spotify-glyph.svg']:

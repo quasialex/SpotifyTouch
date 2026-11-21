@@ -6,7 +6,7 @@ python3 -m py_compile src/ubuntu/server.py src/pi/controller/switchd.py src/pi/s
 python3 -m unittest discover -s tests -q
 while IFS= read -r -d '' path; do node --check "$path"; done < <(find src -name '*.js' -print0)
 for test in tests/*.js; do node "$test"; done
-bash -n src/pi/kiosk/launch-viewer.sh src/pi/session/minimal-session.sh scripts/install-ubuntu.sh scripts/install-pi.sh scripts/rollback-ubuntu.sh scripts/rollback-pi.sh
+bash -n src/pi/kiosk/launch-viewer.sh src/pi/kiosk/launch-audio.sh src/pi/kiosk/launch-tunnel.sh src/pi/session/minimal-session.sh scripts/install-ubuntu.sh scripts/install-pi.sh scripts/rollback-ubuntu.sh scripts/rollback-pi.sh
 bash scripts/install-ubuntu.sh --dry-run --container-mode existing --container spotify-headless > /dev/null
 bash scripts/install-pi.sh --dry-run --profile standalone --ssh-host ubuntu.example.lan --ssh-user spotify > /dev/null
 bash scripts/install-pi.sh --dry-run --profile companion --ssh-host ubuntu.example.lan --ssh-user spotify > /dev/null

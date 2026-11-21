@@ -1,31 +1,10 @@
-# Interactive installation (beta / unverified on a fresh device)
+# Installation and rollback
 
-> **Read before running:** These are **beta installers** derived from one known-working
-> Pi Zero 2 W + Ubuntu deployment. Tests run offline, but a true new-device
-> installation and the **Spotify-only profile have not been hardware-tested**.
-> Do **not** run them against the author's already-working SpotifyTouch deployment:
-> they intentionally refuse to overwrite an existing SpotifyTouch service.
-> They do not install or configure an operating system from scratch.
+> **Beta:** no clean-install hardware validation yet. The installers do not overwrite an existing SpotifyTouch installation and do not reinstall the operating system. Use a normal (non-root) user with an available systemd user session.
 
-## Prerequisites
+## 1. Ubuntu backend
 
-- **Ubuntu:** x86-64 Linux, a rootless Podman setup with sufficient memory/disk,
-  systemd user session and network access. Spotify Headless is a separately
-  installed [upstream project](https://github.com/kk-spartans/spotify-headless).
-  Read its applicable terms and security notes. Do not use rootful Podman.
-- **Pi:** Raspberry Pi OS Debian 13, labwc/Wayland **already installed and configured**,
-  accessible via SSH for recovery; Python 3, systemd user services, `mpv`, SSH,
-  `curl`, `PipeWire`/`WirePlumber`; BlueZ and `wpctl` if Bluetooth is requested.
-  A MagicMirror companion installation needs an existing MagicMirror + correct
-  PM2 launcher registration + its Electron executable. The Spotify-only mode
-  needs an independent Electron runtime; the wizard can install it through npm.
-- **Network:** Pi can connect to Ubuntu via SSH and TCP port 18080 on a trusted
-  LAN. The control API stays bound to Ubuntu loopback and is forwarded over SSH.
-  Never expose TCP 16080 directly to the Internet.
-- **Spotify login:** a new upstream container requires interactive login in its
-  local web interface; the wizard **does not** handle credentials.
-
-## Step 1 — Ubuntu backend
+On an **x86-64 Ubuntu** machine, install rootless Podman, then:
 
 ```bash
 git clone https://github.com/quasialex/SpotifyTouch.git
@@ -33,26 +12,19 @@ cd SpotifyTouch
 bash scripts/install-ubuntu.sh
 ```
 
-The wizard asks whether to use an **existing running** Spotify Headless container
-or create a new one. The default HTTP mapping for a new container is
-`0.0.0.0:18080 → container:8080`, enabling Pi-side audio streaming over the LAN.
-It installs the Python API on `127.0.0.1:16080`, copies the project's CDP
-bridge into the container's persistent `/data`, and registers the API with
-systemd user services. It never copies your Spotify login state into Git.
+The wizard chooses **existing Spotify Headless container** by default when it detects one, otherwise **create a new container**. The default name is `spotify-headless`; newly created containers use the separate upstream image `ghcr.io/kk-spartans/spotify-headless:latest` and preserve `/data` in a Podman volume. The upstream `latest` tag is mutable; an immutable image can be provided with `--image`. No Spotify source code, browser profile, cookies or credentials are added to this repository.
 
-New container deployment is **experimental**. It uses upstream
-`ghcr.io/kk-spartans/spotify-headless:latest` unless you provide an immutable
-image ref with `--image`. Replacing `latest` with a vetted release digest is
-recommended. Only the audio HTTP endpoint is needed; no extra container
-service or external WebRTC ports are required by the Pi client.
+The wizard installs the Python API as `spotify-touch-api.service` on Ubuntu **loopback** `127.0.0.1:16080`. The HTTP stream uses the container's `/spotify.ts` endpoint (Ubuntu TCP `18080` by default). After creating a new container, complete Spotify login through the upstream container's web page at `http://<ubuntu-host>:18080/`. Restrict this port to a trusted LAN using a firewall; never forward it to the Internet.
 
-**Review the configuration without making changes:**
+For review only (no writes):
 
 ```bash
-bash scripts/install-ubuntu.sh --dry-run --container-mode existing --container spotify-headless
+bash scripts/install-ubuntu.sh --dry-run
 ```
 
-## Step 2 — Raspberry Pi frontend
+## 2. Raspberry Pi touchscreen
+
+On a Pi running **Debian 13 / Raspberry Pi OS with a working labwc/Wayland session**, install `mpv`, `curl`, SSH client, Python 3, PipeWire/WirePlumber and systemd user services. Install `bluetoothctl`/`wpctl` if using Bluetooth. Keep SSH recovery available.
 
 ```bash
 git clone https://github.com/quasialex/SpotifyTouch.git
@@ -60,69 +32,31 @@ cd SpotifyTouch
 bash scripts/install-pi.sh
 ```
 
-Choose one of two modes:
+Choose one of these modes:
 
-- **1 — Spotify-only:** launch the touchscreen Spotify player without installing
-  MagicMirror. Uses a dedicated Electron runtime, optionally installed into a
-  separate user directory via npm. This mode is **not yet device-tested**.
-- **2 — MagicMirror companion:** keep MagicMirror server-only under an existing,
-  healthy PM2 installation and navigate a single persistent Electron viewer
-  between MagicMirror and Spotify Touch. An optional launcher is installed.
-  If `MMM-KumaSummary` is present, the button is placed next to it; otherwise
-  the launcher appears in the top-right corner.
+- **1 — Spotify-only:** dedicated fullscreen kiosk; independent Electron runtime (the wizard can install one with npm). **Not tested on physical standalone hardware.**
+- **2 — MagicMirror companion:** MagicMirror must already be installed and managed with a working PM2 launcher. The wizard installs `MMM-SpotifyTouch`, a single Electron viewer and on-demand audio; MagicMirror stays server-only while Spotify is open.
 
-The wizard requests the Ubuntu hostname or IP, SSH login and key path, audio
-stream URL (defaults to `http://<ubuntu-host>:18080/spotify.ts`), and optional
-paired Bluetooth MAC. It will help create and authorize a dedicated SSH key
-with `ssh-copy-id` only after your approval. It requires SSH host-key verification.
-**Never upload the private key or authenticated Spotify session.**
+The wizard asks only for the **Ubuntu host/IP**, **Ubuntu SSH user** (defaults to your current username) and **optional paired Bluetooth MAC**. The default stream URL is automatically `http://<ubuntu-host>:18080/spotify.ts`; no second Ubuntu address is needed. If the audio endpoint differs, use `--stream-port` or `--audio-url`.
 
-Audio starts on entering Spotify; it stops on returning to MagicMirror. PipeWire,
-Bluetooth daemon and SSH tunnel remain present but lightweight in the mirror
-mode. If no Bluetooth address is configured, the OS default audio sink is used.
+It generates one private file, `~/.config/spotifytouch/pi.env`, used by the local controller, kiosk, audio and SSH tunnel. The SSH identity can be created and authorized with your approval (`ssh-copy-id`); the script uses strict SSH host-key checking. Never commit private keys or login state. The on-demand `mpv` audio service is **not** enabled at startup.
 
-**Review the generated plan without making changes:**
+For review only (no writes):
 
 ```bash
-bash scripts/install-pi.sh --dry-run --profile companion \
-  --ssh-host ubuntu.example.lan --ssh-user spotify
-
-bash scripts/install-pi.sh --dry-run --profile standalone \
-  --ssh-host ubuntu.example.lan --ssh-user spotify
+bash scripts/install-pi.sh --dry-run --ssh-host ubuntu.example.lan
 ```
 
-The Pi script does **not automatically change the LightDM login session**. The
-existing desktop should remain available for the initial switching test. Only
-**after** verifying the touch UI and SSH recovery, opt in to a minimal labwc
-session:
+The wizard **does not change your graphical login session**. After verifying the viewer, audio and SSH recovery, the optional minimal labwc session can be reviewed and enabled with:
 
 ```bash
 bash ~/.local/share/spotify-appliance-v2-kiosk/minimal-session.sh --check
 bash ~/.local/share/spotify-appliance-v2-kiosk/minimal-session.sh --enable
-# Review the output and SSH recovery instructions BEFORE rebooting.
 ```
 
-If your Pi does not already have a working labwc/LightDM session, the wizard
-will stop and explain the missing prerequisite rather than replacing the OS.
+This optional step adjusts LightDM and may require a reboot. It has its own `--restore` command. Do not enable it without SSH recovery access.
 
-## Rollback and diagnostics
-
-Each installer snapshots any files it writes under
-`~/.local/state/spotifytouch/backups/` and saves the last installation manifest.
-
-```bash
-# On Ubuntu, from the repository checkout:
-bash scripts/rollback-ubuntu.sh
-
-# On the Pi, from its repository checkout:
-bash scripts/rollback-pi.sh
-```
-
-The rollback preserves user-created SSH keys, Spotify login data, Podman volumes,
-and any existing OS/LightDM modifications. A newly created container is *not*
-automatically deleted by rollback; inspect and remove it manually if appropriate.
-The minimal labwc session has a separate `--restore` command and may require a
-reboot. Back up the SD card before changing the graphical boot session.
+## Diagnostics and rollback
 
 ```bash
 # Ubuntu
@@ -135,8 +69,16 @@ curl -fsS 'http://127.0.0.1:16080/api?action=health'
 systemctl --user status spotify-tunnel.service spotify-appliance-kiosk.service
 ```
 
-**Known limitations:** the Spotify-only profile's ability to recover when a
-Bluetooth speaker is powered on *after* boot needs a device test. The latest
-upstream image, container login behavior, screen rotation/mapping and audio
-latency remain environment-dependent. No public release tag should imply these
-have been validated yet.
+To undo a new setup, from the same repository checkout:
+
+```bash
+# On Ubuntu
+bash scripts/rollback-ubuntu.sh
+
+# On Pi
+bash scripts/rollback-pi.sh
+```
+
+Backups are recorded under `~/.local/state/spotifytouch/backups/`. Rollback restores installer-managed files and user services. It intentionally leaves Spotify user data, newly created Podman volumes/containers and generated SSH keys available for review rather than deleting them. If you enabled the optional minimal session, run `minimal-session.sh --restore` separately.
+
+**Limitations:** Pi standalone mode, new-container startup on fresh Ubuntu, and the complete rollback have not been validated on a second physical deployment. The runtime relies on Spotify/Spicetify private interfaces, which can change independently. If you use upstream `latest`, check compatibility after a new image pull; no automatic upgrades are performed by this project.

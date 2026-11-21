@@ -20,7 +20,7 @@ jobs:
       - name: Python and shell syntax
         run: |
           python3 -m py_compile src/ubuntu/server.py src/pi/controller/switchd.py src/pi/session/patch_launcher.py scripts/setup.py
-          bash -n src/pi/kiosk/launch-viewer.sh src/pi/session/minimal-session.sh scripts/install-ubuntu.sh scripts/install-pi.sh scripts/rollback-ubuntu.sh scripts/rollback-pi.sh
+          bash -n src/pi/kiosk/launch-viewer.sh src/pi/kiosk/launch-audio.sh src/pi/kiosk/launch-tunnel.sh src/pi/session/minimal-session.sh scripts/install-ubuntu.sh scripts/install-pi.sh scripts/rollback-ubuntu.sh scripts/rollback-pi.sh
           bash scripts/install-ubuntu.sh --dry-run --container-mode existing --container spotify-headless
           bash scripts/install-pi.sh --dry-run --profile standalone --ssh-host ubuntu.example.lan --ssh-user spotify
           bash scripts/install-pi.sh --dry-run --profile companion --ssh-host ubuntu.example.lan --ssh-user spotify

@@ -1,79 +1,44 @@
 # SpotifyTouch
 
-Touch-first Spotify controller for small Raspberry Pi displays, with an optional MagicMirror² kiosk integration.
+A lightweight, touch-first Spotify player for a Raspberry Pi, with an optional **MagicMirror² companion** mode. Designed for a Pi Zero 2 W and a small touchscreen, with an **external x86-64 Ubuntu machine** providing the Spotify backend.
 
-> **Status: beta installation wizards are available on the draft PR.** They pass offline tests but are **not yet hardware-tested on fresh Ubuntu/Pi installs**. Do not run them on an existing working SpotifyTouch setup.
+Features: Liked Songs, playlists, artist top tracks and albums, artwork, playback controls, a persistent fullscreen kiosk, and optional on-demand Bluetooth audio.
 
-## What the working prototype does
+## Install: Ubuntu first, then Pi
 
-The reference deployment uses a Raspberry Pi Zero 2 W (64-bit Debian 13, 7-inch touch display) and an **external x86-64 Ubuntu host** running [Spotify Headless](https://github.com/kk-spartans/spotify-headless) in rootless Podman.
+On your **Ubuntu x86-64 host**, with rootless [Podman](https://podman.io/) installed:
 
-- Touch-friendly Liked Songs, playlists, currently playing tracks, playback controls and artwork.
-- Tap the current artist to browse popular tracks and albums; open albums and play tracks.
-- Optional MagicMirror² integration with one persistent kiosk viewer that switches between the mirror and Spotify screens.
-- Minimal labwc/Wayland display session on the Pi.
-- On-demand `mpv` audio consumer and Bluetooth speaker connection.
-- SSH tunnel for the control API; separate LAN audio transport.
-
-The working system has been tested on the author's hardware. This repository will progressively publish the **reproducible source and installation process** rather than relying on old machine-specific update archives.
-
-## Architecture
-
-```text
-                  Raspberry Pi (ARM64, display)
-       ┌─────────────────────────────────────────────────┐
-       │ Minimal labwc + persistent Electron kiosk       │
-       │   MagicMirror² server-only  ↔  SpotifyTouch UI   │
-       │                                                  │
-       │ Control API ← local SSH forward :16080           │
-       │ Audio      ← mpv ← LAN HTTP MPEG-TS :18080       │
-       │                      ↓                           │
-       │               PipeWire → Bluetooth               │
-       └─────────────────────────────────────────────────┘
-                                      ↑
-                  x86-64 Ubuntu host  │
-       ┌─────────────────────────────────────────────────┐
-       │ rootless Podman / Spotify Headless / Spicetify   │
-       │ CDP bridge → local SpotifyTouch Python API      │
-       │ HTTP audio stream producer                       │
-       └─────────────────────────────────────────────────┘
+```bash
+git clone https://github.com/quasialex/SpotifyTouch.git
+cd SpotifyTouch
+bash scripts/install-ubuntu.sh
 ```
 
-**The backend is not running on the Pi.** Upstream Spotify Headless relies on a desktop Spotify client not available as a native ARM64 binary. A "standalone" Pi mode is planned to run the touchscreen *without MagicMirror*, but will still require an external compatible Spotify backend.
+The wizard detects an existing Spotify Headless container or offers to create one. It installs the localhost-only SpotifyTouch API and the Spicetify bridge. A new container will require you to sign in through the upstream Spotify Headless login page. **No Spotify credentials are requested by this installer.**
 
-## Planned installation profiles
+On your **Raspberry Pi (Debian 13 / labwc)**:
 
-| Profile | Pi display | Ubuntu backend | Status |
-| --- | --- | --- | --- |
-| MagicMirror integration | Mirror ↔ Spotify touchscreen | Required | Working prototype; portable installer pending |
-| Spotify-only kiosk | Spotify touchscreen on boot | Required | Planned; not yet validated |
+```bash
+git clone https://github.com/quasialex/SpotifyTouch.git
+cd SpotifyTouch
+bash scripts/install-pi.sh
+```
 
-## Repository and dependencies
+Choose **1 — Spotify-only kiosk** or **2 — MagicMirror companion**. The wizard asks for the **Ubuntu host/IP once**, Ubuntu SSH username, and optionally a paired Bluetooth speaker address. The audio URL is derived from the Ubuntu host automatically. It creates `~/.config/spotifytouch/pi.env` as the **single source of truth** for Ubuntu connectivity, local audio and the SSH tunnel; you do not edit separate service definitions. In companion mode, MagicMirror must already be installed.
 
-- **This repository:** touchscreen UI, API bridge, Pi kiosk/switching code, installer templates and tests.
-- **[Spotify Headless](https://github.com/kk-spartans/spotify-headless):** a separately installed upstream dependency. We will pin a tested upstream revision and review new versions through pull requests; we will not silently track `latest` in releases.
-- **[MagicMirrorPiO2W](https://github.com/quasialex/MagicMirrorPiO2W):** the separate, optional dashboard integration repository.
+To review the installer without changes: `bash scripts/install-ubuntu.sh --dry-run` or `bash scripts/install-pi.sh --dry-run --ssh-host ubuntu.example.lan`.
 
-Read [architecture](docs/architecture.md), [current integration gaps](docs/integration-gaps.md), and [what configuration is still needed](docs/configuration-inventory.md).
+**Read [installation requirements and rollback](docs/installation.md) before using a beta installer.** Existing SpotifyTouch installs are detected and left untouched; these are *fresh-setup* scripts, not migration scripts. Minimal labwc/LightDM takeover is an optional later step, not automatic.
 
-## Security and compatibility
+## Dependencies and compatibility
 
-- Never commit Spotify authentication state, browser profiles, credentials, user session files, SSH keys, private calendar URLs, or Bluetooth pairing databases.
-- Audio HTTP ports should only be exposed on a trusted network; the control API should remain loopback-bound and accessed through an SSH forward.
-- This is an **unofficial** integration, not affiliated with or endorsed by Spotify or MagicMirror². Internal Spotify/Spicetify interfaces are subject to change. Use of Spotify services is subject to Spotify's applicable terms.
-- No upstream Spotify client binaries or Spotify Headless source are included.
-- Project licensing for original source will be decided before the first code release. Any third-party code and artwork must retain appropriate rights and notices.
+- **[kk-spartans/spotify-headless](https://github.com/kk-spartans/spotify-headless)**: separate upstream backend. The installer pulls the published `ghcr.io/kk-spartans/spotify-headless` container image or attaches to one already running. We do not copy, vendor or modify Spotify Headless itself. Its upstream changes are **not automatically deployed** to existing installations.
+- **Raspberry Pi**: ARM64 Pi Zero 2 W, existing working labwc/Wayland session, `mpv`, SSH, PipeWire, systemd user services, and an Electron runtime (bundled with MagicMirror or separately installed by the standalone wizard). Bluetooth is optional.
+- **Network**: trusted LAN access from the Pi to Ubuntu's HTTP stream on port `18080`, plus SSH access. The SpotifyTouch API listens on Ubuntu `127.0.0.1:16080` and is forwarded via SSH; it is **not** published on the LAN.
+- **[quasialex/MagicMirrorPiO2W](https://github.com/quasialex/MagicMirrorPiO2W)**: separate MagicMirror installation project. SpotifyTouch companion mode can integrate with an existing MagicMirror without copying its sources into this repository.
 
-## Development roadmap
+## Beta status
 
-1. Inventory the exact working Ubuntu and Pi services, without collecting secrets.
-2. Consolidate the latest Artist Edition UI/API and Pi kiosk/switcher into clean, configurable source.
-3. Replace hardcoded host IPs, usernames and Bluetooth addresses with installer-provided configuration.
-4. Test fresh installs, rollbacks, audio lifecycle, artist navigation and both display profiles.
-5. Publish a versioned release and then integrate it optionally with MagicMirrorPiO2W.
+Based on one working Ubuntu + Pi Zero 2 W deployment. **Offline tests and GitHub Actions pass, but the fresh-device installers and Spotify-only mode have not been tested on physical hardware.** Some devices may need display mapping, speaker or SSH adjustments. You should have SSH recovery access and a Pi backup before altering its graphical session. The installer's backup/rollback code has offline coverage but has not been exercised through a complete clean installation.
 
-**Do not run the old version-specific migration scripts as if they were a new-machine installer.**
-
-## Beta installation wizards
-
-Run the Ubuntu wizard first, then the Pi wizard. Each offers a confirmation screen, systemd service configuration, backups and rollback. The Pi wizard offers Spotify-only kiosk or MagicMirror companion. **Read [beta installation instructions](docs/installation.md) before applying.** Both wizards support `--dry-run`. These scripts are staged in an unmerged draft PR and are not yet a tagged release.
+The software is unofficial, not endorsed by Spotify or MagicMirror². Spotify service access remains subject to Spotify's terms. **MIT** applies to the original SpotifyTouch code; third-party branding and software are not relicensed (see [NOTICE.md](NOTICE.md)).
