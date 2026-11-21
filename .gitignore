@@ -1,0 +1,41 @@
+# Local credentials and machine-specific configuration
+.env
+.env.*
+!.env.example
+*.local.env
+config.local.*
+*credentials*
+*secrets*
+*.pem
+*.key
+id_rsa
+id_ed25519
+authorized_keys
+known_hosts
+
+# Do not publish runtime user data
+.spotify/
+.spicetify/
+.config/spotify/
+.config/Spotify/
+.local/share/spotify/
+spotify-touch-backups/
+browser-profile/
+user-data/
+userdata/
+Cookies
+Local\ State
+
+# Runtime, build output and dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.cache/
+dist/
+build/
+*.log
+*.tar.gz
+.DS_Store
+.idea/
+.vscode/
