@@ -1,0 +1,16 @@
+# Render @SSH_USER@, @SSH_HOST@ and @SSH_IDENTITY_FILE@ with local configuration.
+# A secure SSH key and a known_hosts entry must exist before enabling this service.
+# Keep Ubuntu SpotifyTouch API listening only on 127.0.0.1.
+[Unit]
+Description=SSH forward to Ubuntu SpotifyTouch control API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ssh -N -T -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=yes -i @SSH_IDENTITY_FILE@ -L 127.0.0.1:16080:127.0.0.1:16080 @SSH_USER@@@SSH_HOST@
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
