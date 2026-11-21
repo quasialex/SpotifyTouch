@@ -6,6 +6,18 @@ Play Liked Songs and playlists; tap the now-playing artist for top tracks and al
 
 **Two modes:** **1 — Spotify-only** fills the Pi screen (no MagicMirror); **2 — MagicMirror companion** switches between your dashboard and Spotify. Both modes use an **external x86-64 Linux/Ubuntu host** running [Spotify Headless](https://github.com/kk-spartans/spotify-headless); the Spotify desktop backend cannot run natively on a Pi Zero 2 W.
 
+## Screenshots
+
+These are real screenshots from the Pi Zero 2 W / 7-inch touchscreen running in **MagicMirror companion** mode. The Spotify-only mode uses the same player interface, but its fresh-install path is still beta.
+
+**Library and playback controls**
+
+![SpotifyTouch library with playlists, liked songs, album art, and touch playback controls](docs/screenshots/spotify-touch-library.png)
+
+**Artist view**
+
+![SpotifyTouch artist view with popular tracks, album artwork, and playback controls](docs/screenshots/spotify-touch-artist.png)
+
 > **Beta:** The original Ubuntu + Pi/MagicMirror setup works. The new interactive installers and Spotify-only mode have **not been tested on a fresh physical installation**. Installers will not overwrite an existing SpotifyTouch deployment.
 
 ## Install (Ubuntu first, then Raspberry Pi)
