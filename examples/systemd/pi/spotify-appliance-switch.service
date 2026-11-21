@@ -1,0 +1,14 @@
+# Reference template. Install the switchd.py application separately.
+# The final switchd.py must load Bluetooth address from local configuration.
+[Unit]
+Description=SpotifyTouch local view and audio controller
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/share/spotify-appliance/switchd.py
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=8
+
+[Install]
+WantedBy=default.target

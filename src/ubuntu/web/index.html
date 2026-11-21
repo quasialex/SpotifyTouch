@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#0e1411">
+  <title>Spotify Touch</title>
+  <link rel="stylesheet" href="/ui.css?v=22artist">
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="brand"><img src="/spotify-glyph.svg" alt=""><span>Spotify</span><span class="touch-pill">TOUCH</span></div>
+      <span id="connection" class="connection">Connecting…</span>
+      <div class="top-actions">
+        <button id="backDashboard" type="button" class="top-btn dashboard" aria-label="Return to dashboard" title="Dashboard">⌂</button>
+      </div>
+    </header>
+    <div class="body">
+      <aside class="sidebar">
+        <div class="side-top"><span>Your Library</span><button id="sideCollapse" aria-label="Collapse library" title="Collapse library">☰</button></div>
+        <div class="side-fixed">
+          <button class="quick-item" data-page="current" data-title="Current Playlist"><span class="quick-icon">♫</span><span class="quick-text">Current Playlist</span></button>
+          <button class="quick-item" data-page="liked" data-title="Liked Songs"><span class="quick-icon purple">♥</span><span class="quick-text">Liked Songs</span></button>
+        </div>
+        <div class="section-label">YOUR PLAYLISTS</div>
+        <div id="playlists" class="side-list scroll" aria-label="Your playlists"><p class="message">Loading library…</p></div>
+      </aside>
+      <main class="main">
+        <div class="navrow">
+          <button type="button" id="navBack" class="nav-btn" aria-label="Back">‹</button>
+          <button type="button" id="navForward" class="nav-btn" aria-label="Forward">›</button>
+          <h1 id="pageTitle">Liked Songs</h1>
+          <button type="button" id="playCollection" class="play-collection" hidden aria-label="Play this collection from the beginning">▶ Play</button>
+          <span id="resultCount" class="count"></span>
+        </div>
+        <div id="notice" class="notice" hidden></div>
+        <div id="results" class="results scroll" aria-label="Tracks in selected playlist"><p class="message">Connecting to your Spotify library…</p></div>
+      </main>
+    </div>
+    <footer class="playerbar">
+      <button type="button" id="nowOpenArtist" class="now-link" aria-label="Open now-playing artist" title="View artist and top songs" disabled>
+        <img id="cover" class="cover" src="/spotify-glyph.svg" alt="Current album artwork">
+        <span class="now"><strong id="song">Nothing playing</strong><span id="artist">Spotify Headless • Ubuntu</span></span>
+      </button>
+      <div class="player-controls">
+        <button id="prev" aria-label="Previous track" title="Previous">⏮</button>
+        <button id="toggle" class="play" aria-label="Play or pause" title="Play/Pause">▶</button>
+        <button id="next" aria-label="Next track" title="Next">⏭</button>
+      </div>
+      <div id="playerStatus" class="player-status">Server audio</div>
+    </footer>
+  </div>
+  <script>
+    if (new URLSearchParams(window.location.search).get('standalone') === '1') {
+      document.getElementById('backDashboard').hidden = true;
+    }
+  </script>
+  <script defer src="/ui.js?v=22artist"></script>
+</body>
+</html>
