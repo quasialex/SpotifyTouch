@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+  <!-- Optional touchscreen mapping: replace DEVICE_NAME and OUTPUT_NAME using 'libinput list-devices' and 'wlr-randr'. -->
+  <touch deviceName="DEVICE_NAME" mapToOutput="OUTPUT_NAME" mouseEmulation="yes"/>
+</openbox_config>
