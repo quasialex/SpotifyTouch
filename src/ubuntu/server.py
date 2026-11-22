@@ -6,14 +6,14 @@ import base64, json, os, subprocess, sys
 from urllib.parse import urlparse, parse_qs
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-WEB_ROOT = os.environ.get('SPOTIFY_WEB_ROOT', os.path.join(HERE,'web'))
+WEB_ROOT = os.environ.get('SPOTIFY_WEB_ROOT', HERE)
 ALLOWED_GET = {'health','state','library','liked','playlist','artist','album'}
 ALLOWED_POST = {'play','pause','resume','toggle','next','previous'}
 
 
 def call(req):
     blob = base64.b64encode(json.dumps(req, ensure_ascii=False, separators=(',',':')).encode()).decode()
-    cmd = ['podman','exec',os.environ.get('SPOTIFY_CONTAINER_NAME','spotify-headless'), 'node',os.environ.get('SPOTIFY_BRIDGE_PATH','/data/spotify-touch-v2/cdp-helper.js'),blob]
+    cmd = ['podman','exec',os.environ.get('SPOTIFY_CONTAINER_NAME','spotify-headless'), 'node',os.environ.get('SPOTIFY_BRIDGE_PATH','/data/spotify-touch/cdp-helper.js'),blob]
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=18)
         if proc.returncode != 0:
