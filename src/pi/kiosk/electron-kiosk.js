@@ -11,7 +11,7 @@ const fs = require('node:fs');
 const BASE = 'http://127.0.0.1:' + (process.env.SPOTIFY_SWITCH_PORT || '16181');
 const MIRROR_URL = process.env.MAGICMIRROR_URL || 'http://[::1]:8080/';
 const SPOTIFY_URL = BASE + '/player';
-const profile = path.join(os.homedir(), '.cache', 'spotify-appliance-v2-kiosk');
+const profile = path.join(os.homedir(), '.cache', 'spotify-touch');
 fs.mkdirSync(profile, { recursive: true });
 app.setPath('userData', profile);
 app.commandLine.appendSwitch('ozone-platform', 'wayland');
