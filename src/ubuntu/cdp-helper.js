@@ -101,7 +101,7 @@ async function execute(req){
         if(req.contextUri!=='spotify:collection:tracks'){
           const clearQueue=S.Platform.PlayerAPI?.clearQueue;
           if(typeof clearQueue!=='function')throw Error('Spotify queue API unavailable');
-          await clearQueue();
+          await S.Platform.PlayerAPI.clearQueue();
         }
         if(req.contextUri){
           // Spicetify's documented context argument. This tells Spotify which
