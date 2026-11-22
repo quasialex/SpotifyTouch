@@ -32,4 +32,4 @@ done
 (( FOUND_SERVERS )) || { echo 'Kiosk prerequisites failed: local switch controller or MagicMirror unavailable' >&2; exit 1; }
 ELECTRON_BIN="${SPOTIFY_ELECTRON_BIN:-$HOME/MagicMirror/node_modules/.bin/electron}"
 [[ -x "$ELECTRON_BIN" ]] || { echo 'Electron binary missing; configure SPOTIFY_ELECTRON_BIN' >&2; exit 1; }
-exec "$ELECTRON_BIN" "$HOME/.local/share/spotify-appliance-v2-kiosk/electron-kiosk.js" --ozone-platform=wayland
+exec "$ELECTRON_BIN" "$HOME/.local/share/spotify-touch/electron-kiosk.js" --ozone-platform=wayland
