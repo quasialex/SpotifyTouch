@@ -2,4 +2,4 @@
 # Minimal labwc session; preserve rotation if kanshi is installed.
 if command -v kanshi >/dev/null 2>&1; then kanshi >/dev/null 2>&1 & fi
 systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_SESSION_TYPE XDG_CURRENT_DESKTOP >/dev/null 2>&1 || true
-systemctl --user --no-block restart spotify-appliance-kiosk.service >/dev/null 2>&1 || true
+systemctl --user --no-block restart spotify-touch-kiosk.service >/dev/null 2>&1 || true
