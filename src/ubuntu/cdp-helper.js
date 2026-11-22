@@ -1,4 +1,4 @@
-/* Spotify Touch v2.1: executes within the authenticated Spotify desktop page.
+/* Spotify Touch: executes within the authenticated Spotify desktop page.
    No Web API search requests: the returned 429 was a real API error.
    RootlistAPI and LibraryAPI getContents have been verified on this user's client. */
 'use strict';

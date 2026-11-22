@@ -206,6 +206,10 @@ async function playerCommand(action) {
 $('playCollection').addEventListener('click',()=>{
   if(activePlayableUri){void playSelectedTrack(activePlayableUri);return;}
   if(!activeCollection)return;
+  if(activeCollection.page==='playlist'){
+    void playSelectedTrack(activeCollection.uri);
+    return;
+  }
   const index=activeCollection.items.findIndex(x=>x.kind==='track');
   if(index<0)return;
   void playSelectedTrack(activeCollection.items[index].uri,activeCollection,index);

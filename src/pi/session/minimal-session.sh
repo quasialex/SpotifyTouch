@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # Optional dedicated labwc session for Raspberry Pi OS Trixie + Elecrow touch.
 # It does not uninstall a desktop or change SSH, Wi-Fi, PipeWire or Bluetooth.
-# Must be run AFTER the main v2 installer and a successful touchscreen test.
+# Must be run AFTER the Spotify Touch installer and a successful touchscreen test.
 set -Eeuo pipefail
 MODE="${1:---check}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
-STATE="$HOME/.local/state/spotify-appliance-v2-kiosk"
-CONF="$HOME/.config/spotify-appliance-v2-kiosk"
+STATE="$HOME/.local/state/spotify-touch"
+CONF="$HOME/.config/spotify-touch"
 LABWC="$CONF/labwc"
 MARKER="$STATE/minimal-backup"
 LIGHTDM=/etc/lightdm/lightdm.conf
-SESSION=/usr/share/wayland-sessions/spotify-appliance.desktop
-SESSION_SCRIPT=/usr/local/bin/spotify-appliance-session
+SESSION=/usr/share/wayland-sessions/spotify-touch.desktop
+SESSION_SCRIPT=/usr/local/bin/spotify-touch-session
 fail(){ echo "ERROR: $*" >&2; exit 1; }
 [[ $EUID -ne 0 ]] || fail 'Run as regular user, not sudo.'
 mkdir -p "$STATE"
@@ -25,15 +25,15 @@ if [[ "$MODE" == --check ]];then
   ls -l "$HOME/.config/labwc" "$HOME/.config/kanshi" 2>/dev/null || true
   echo 'Desktop processes currently running:'
   ps -eo comm= | grep -E '^(labwc|wf-panel-pi|pcmanfm-pi|kanshi|swayidle|electron)$' || true
-  echo 'v2 application readiness:'
+  echo 'Spotify Touch application readiness:'
   curl -fsS -m 3 http://127.0.0.1:16181/health || true
   echo
-  echo 'Enable only after the v2 touchscreen app works and SSH/SD backup are available.'
+  echo 'Enable only after the Spotify Touch touchscreen app works and SSH/SD backup are available.'
   exit 0
 fi
 if [[ "$MODE" == --enable ]]; then
   [[ ! -f "$MARKER" ]] || fail 'Already enabled. Use --restore first.'
-  [[ -f "$CONF/enabled" ]] || fail 'Install and test Spotify Appliance v2 first.'
+  [[ -f "$CONF/enabled" ]] || fail 'Install and test Spotify Touch first.'
   [[ -x /usr/bin/labwc ]] || fail 'labwc binary missing.'
   [[ -f "$LIGHTDM" ]] || fail 'LightDM config not found.'
   python3 - "$LIGHTDM" <<'PY' || fail 'Cannot find a single supported autologin-session setting.'
@@ -43,7 +43,7 @@ v=Path(sys.argv[1]).read_text()
 a=re.findall(r'^\s*autologin-session\s*=\s*([^#\s]+)',v,re.M)
 assert len(a)==1 and a[0] in ('rpd-labwc','labwc'), f'Unexpected session setting: {a}'
 PY
-  BK="$HOME/spotify-touch-backups/$(date +%Y%m%d-%H%M%S)-minimal-v2-$$"
+  BK="$HOME/spotify-touch-backups/$(date +%Y%m%d-%H%M%S)-minimal-$$"
   mkdir -p "$BK" "$LABWC"
   sudo cp -a "$LIGHTDM" "$BK/lightdm.conf"
   [[ ! -f "$SESSION" ]] || sudo cp -a "$SESSION" "$BK/session.desktop"
@@ -76,15 +76,15 @@ if command -v kanshi >/dev/null 2>&1; then kanshi >/dev/null 2>&1 & fi
 # Let systemd user services discover the active Wayland display.
 systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_SESSION_TYPE XDG_CURRENT_DESKTOP >/dev/null 2>&1 || true
 # Viewer service is enabled at boot; restart it to attach to this compositor.
-systemctl --user --no-block restart spotify-appliance-kiosk.service >/dev/null 2>&1 || true
+systemctl --user --no-block restart spotify-touch-kiosk.service >/dev/null 2>&1 || true
 AUTO
   chmod 0755 "$LABWC/autostart"
-  printf '#!/bin/sh\nexport WLR_DRM_FORCE_LIBLIFTOFF=1\nexec /usr/bin/labwc -C "$HOME/.config/spotify-appliance-v2-kiosk/labwc"\n' > "$BK/new-session-script"
+  printf '#!/bin/sh\nexport WLR_DRM_FORCE_LIBLIFTOFF=1\nexec /usr/bin/labwc -C "$HOME/.config/spotify-touch/labwc"\n' > "$BK/new-session-script"
   cat > "$BK/new-session.desktop" <<'DESKTOP'
 [Desktop Entry]
-Name=Spotify Appliance Kiosk
+Name=Spotify Touch Kiosk
 Comment=Minimal labwc touchscreen for MagicMirror and Spotify Touch
-Exec=/usr/local/bin/spotify-appliance-session
+Exec=/usr/local/bin/spotify-touch-session
 TryExec=/usr/bin/labwc
 Type=Application
 DesktopNames=labwc
@@ -96,7 +96,7 @@ from pathlib import Path
 import re,sys
 text=Path(sys.argv[1]).read_text()
 new,count=re.subn(r'(?m)^(\s*autologin-session\s*=\s*)(rpd-labwc|labwc)(\s*)$',
-                  r'\g<1>spotify-appliance\g<3>',text)
+                  r'\g<1>spotify-touch\g<3>',text)
 assert count==1, 'Could not patch exactly one LightDM session'
 Path(sys.argv[2]).write_text(new)
 PY

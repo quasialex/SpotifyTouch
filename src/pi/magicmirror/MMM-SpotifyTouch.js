@@ -59,7 +59,7 @@ Module.register('MMM-SpotifyTouch', {
   },
   socketNotificationReceived(type, message) {
     if (type === 'SPOTIFY_APPLIANCE_ERROR') {
-      console.error('[Spotify Appliance]', message);
+      console.error('[Spotify Touch]', message);
       if (this.launcher) {
         this.launcher.disabled = false;
         this.launcher.title = 'Spotify unavailable: ' + String(message).slice(0, 120);
