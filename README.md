@@ -1,4 +1,4 @@
-# SpotifyTouch
+# Spotify Touch
 
 Touch-friendly Spotify player for a **Raspberry Pi with a 7-inch display**. Originally built for a **Pi Zero 2 W + SpotPear 7-inch touchscreen** running Debian 13/labwc alongside MagicMirror², but MagicMirror is **optional**.
 
