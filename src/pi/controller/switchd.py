@@ -97,6 +97,7 @@ def connect_bluetooth():
                 sink = find_bluetooth_sink(run_cmd(['wpctl','status','-n'],timeout=4))
                 if sink:
                     run_cmd(['wpctl','set-default',sink],timeout=4)
+                    run_cmd(['wpctl','set-volume','-l','1.0',sink,'1.0'],timeout=4)
                     with LOCK:
                         STATE['bluetooth'] = 'connected'
                         STATE['bluetooth_error'] = ''
