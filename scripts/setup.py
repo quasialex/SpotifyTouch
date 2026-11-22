@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SpotifyTouch beta, two-host setup wizard.  No changes without final confirmation.
+"""Spotify Touch beta, two-host setup wizard.  No changes without final confirmation.
 
 Supports rootless Podman on an x86-64 Ubuntu host and a Raspberry Pi with a
 working Wayland/labwc session.  A fresh Pi OS installation is out of scope.
@@ -480,7 +480,7 @@ def configure_pi(args):
     if profile == 'companion':
         electron = validate_path(args.electron_bin or str(mm_dir/'node_modules/.bin/electron'))
     else:
-        electron = validate_path(args.electron_bin or str(HOME/'.local/share/spotifytouch-electron/node_modules/.bin/electron'))
+        electron = validate_path(args.electron_bin or str(HOME/'.local/share/spotify-touch-electron/node_modules/.bin/electron'))
     summary = [f'Pi profile: {profile}', f'Ubuntu SSH API: {user}@{host}:127.0.0.1:{CONTROL_PORT}',
                f'SSH key stored locally: {key}', f'Audio stream: {stream}',
                f'Bluetooth device: {mac if mac else "none; use OS default output"}',
