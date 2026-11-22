@@ -100,6 +100,39 @@ async function execute(req){
           // Spicetify's documented context argument. This tells Spotify which
           // collection Next / automatic playback should continue from.
           if(!/^(spotify:(?:playlist|album):[A-Za-z0-9]+|spotify:collection:tracks)$/.test(req.contextUri))throw Error('Invalid playback context');
+          if(req.contextUri==='spotify:collection:tracks'){
+            const library=S.Platform.LibraryAPI;
+            const player=S.Platform.PlayerAPI;
+            if(typeof library?.getTracks!=='function' ||
+               typeof player?.clearQueue!=='function' ||
+               typeof player?.addToQueue!=='function')
+              throw Error('Liked Songs queue APIs unavailable');
+
+            const result=await library.getTracks({limit:60,offset:0});
+            const raw=Array.isArray(result)
+              ? result : (result?.items||result?.tracks||[]);
+            const liked=unique(raw.map(normalize).filter(x=>
+              x.kind==='track' &&
+              /^spotify:track:[A-Za-z0-9]+$/.test(x.uri)));
+
+            const index=req.index;
+            if(!Number.isInteger(index) || index<0 ||
+               index>=liked.length || liked[index].uri!==req.uri)
+              throw Error('Liked Songs changed; reopen the list and retry');
+
+            await S.Player.playUri(req.uri);
+            await new Promise(resolve=>setTimeout(resolve,1200));
+            await player.clearQueue();
+
+            const following=liked.slice(index+1).map(x=>({uri:x.uri}));
+            for(let i=0;i<following.length;i+=20)
+              await player.addToQueue(following.slice(i,i+20));
+
+            return response({
+              requestedContext:req.contextUri,
+              queued:following.length
+            });
+          }
           const context={contextURI:req.contextUri,trackUri:req.uri};
           if(Number.isInteger(req.index)&&req.index>=0&&req.index<=9999)context.index=req.index;
           await S.Player.playUri(req.uri,context);
