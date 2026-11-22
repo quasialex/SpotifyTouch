@@ -15,7 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
 PORT = int(os.environ.get('SPOTIFY_SWITCH_PORT','16181'))
-AUDIO_UNIT = 'spotify-appliance-audio.service'
+AUDIO_UNIT = 'spotify-touch-audio.service'
 BT_MAC = os.environ.get('SPOTIFY_BLUETOOTH_MAC','').strip().upper()  # Optional: paired speaker
 BT_NODE = 'bluez_output.' + BT_MAC.replace(':', '_') if BT_MAC else ''
 LOCK = threading.RLock()
@@ -195,7 +195,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0b1110;color:#fff;fon
 <iframe id="spotify" src="http://127.0.0.1:16080/" title="Spotify Touch"></iframe>
 <div id="error" role="alert"></div>
 <script>
-// Spotify Touch Classic already renders its own MIRROR button. Its click
+// Spotify Touch already renders its own MIRROR button. Its click
 // sends spotify-touch-close to the parent; do not draw a second overlay.
 let exiting=false;
 async function exit(){
@@ -284,7 +284,7 @@ def main():
     threading.Thread(target=audio_worker, daemon=True).start()
     wake_audio()
     with Server(('127.0.0.1', PORT), Handler) as server:
-        print('Spotify Appliance v2 kiosk controller listening on 127.0.0.1:%d' % PORT, flush=True)
+        print('Spotify Touch kiosk controller listening on 127.0.0.1:%d' % PORT, flush=True)
         server.serve_forever(poll_interval=.5)
 
 
