@@ -94,14 +94,14 @@ systemctl --user status spotify-touch-api.service
 
 # On the Pi
 curl -fsS 'http://127.0.0.1:16181/health'
-systemctl --user status spotify-appliance-kiosk.service spotify-tunnel.service
+systemctl --user status spotify-touch-kiosk.service spotify-touch-tunnel.service
 ```
 
-The Pi wizard creates **`~/.config/spotifytouch/pi.env`**. If you move your Ubuntu server or change speakers later, edit that single file with `vim ~/.config/spotifytouch/pi.env`, then run `systemctl --user restart spotify-tunnel.service spotify-appliance-switch.service spotify-appliance-kiosk.service`. The Ubuntu installer creates `~/.config/spotifytouch/ubuntu.env` automatically.
+The Pi wizard creates **`~/.config/spotify-touch/pi.env`**. If you move your Ubuntu server or change speakers later, edit that single file with `vim ~/.config/spotify-touch/pi.env`, then run `systemctl --user restart spotify-touch-tunnel.service spotify-touch-switch.service spotify-touch-kiosk.service`. The Ubuntu installer creates `~/.config/spotify-touch/ubuntu.env` automatically.
 
 To try either wizard **without making changes**, use `bash scripts/install-ubuntu.sh --dry-run` on Ubuntu, or `bash scripts/install-pi.sh --dry-run --ssh-host UBUNTU-IP` on the Pi.
 
-To undo a fresh setup, run **`bash scripts/rollback-ubuntu.sh`** on Ubuntu or **`bash scripts/rollback-pi.sh`** on the Pi (from the same checkout). Backups are managed automatically. The Pi installer does not automatically replace your graphical session; to review the optional minimal labwc startup later, run `bash ~/.local/share/spotify-appliance-v2-kiosk/minimal-session.sh --check` first.
+To undo a fresh setup, run **`bash scripts/rollback-ubuntu.sh`** on Ubuntu or **`bash scripts/rollback-pi.sh`** on the Pi (from the same checkout). Backups are managed automatically. The Pi installer does not automatically replace your graphical session; to review the optional minimal labwc startup later, run `bash ~/.local/share/spotify-touch/minimal-session.sh --check` first.
 
 ## Compatibility and links
 
