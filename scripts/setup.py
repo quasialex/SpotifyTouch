@@ -22,11 +22,11 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 HOME = Path.home()
-STATE = HOME / '.local/state/spotifytouch'
-CONFIG = HOME / '.config/spotifytouch'
+STATE = HOME / '.local/state/spotify-touch'
+CONFIG = HOME / '.config/spotify-touch'
 USER_UNITS = HOME / '.config/systemd/user'
-APP_PI = HOME / '.local/share/spotify-appliance-v2-kiosk'
-APP_UBUNTU = HOME / '.local/share/spotifytouch/ubuntu'
+APP_PI = HOME / '.local/share/spotify-touch'
+APP_UBUNTU = HOME / '.local/share/spotify-touch'
 CONTROL_PORT = 16080
 SWITCH_PORT = 16181
 
@@ -173,10 +173,10 @@ class Transaction:
             bridge=self.container_bridge
             if bridge['old_exists']:
                 run(['podman','cp',str(self.folder/'original-cdp-helper.js'),
-                     bridge['container']+':/data/spotify-touch-v2/cdp-helper.js'],check=False)
+                     bridge['container']+':/data/spotify-touch/cdp-helper.js'],check=False)
             elif not bridge.get('new_container'):
                 run(['podman','exec','-u','0',bridge['container'],'rm','-f',
-                     '/data/spotify-touch-v2/cdp-helper.js'],check=False)
+                     '/data/spotify-touch/cdp-helper.js'],check=False)
         if restore_units:
             run(['systemctl', '--user', 'daemon-reload'], check=False)
             for name, state in self.units.items():
@@ -197,9 +197,9 @@ After=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/.local/share/spotifytouch/ubuntu
-EnvironmentFile=%h/.config/spotifytouch/ubuntu.env
-ExecStart=/usr/bin/python3 %h/.local/share/spotifytouch/ubuntu/server.py
+WorkingDirectory=%h/.local/share/spotify-touch
+EnvironmentFile=%h/.config/spotify-touch/ubuntu.env
+ExecStart=/usr/bin/python3 %h/.local/share/spotify-touch/server.py
 Restart=on-failure
 RestartSec=3
 
@@ -233,8 +233,8 @@ Description=SpotifyTouch local view and audio controller
 
 [Service]
 Type=simple
-EnvironmentFile=%h/.config/spotifytouch/pi.env
-ExecStart=/usr/bin/python3 %h/.local/share/spotify-appliance-v2-kiosk/switchd.py
+EnvironmentFile=%h/.config/spotify-touch/pi.env
+ExecStart=/usr/bin/python3 %h/.local/share/spotify-touch/switchd.py
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=8
@@ -247,13 +247,13 @@ WantedBy=default.target
 def unit_pi_kiosk():
     return '''[Unit]
 Description=SpotifyTouch persistent Electron kiosk viewer
-Wants=spotify-appliance-switch.service
-After=spotify-appliance-switch.service
+Wants=spotify-touch-switch.service
+After=spotify-touch-switch.service
 
 [Service]
 Type=simple
-EnvironmentFile=%h/.config/spotifytouch/pi.env
-ExecStart=%h/.local/share/spotify-appliance-v2-kiosk/launch-viewer.sh
+EnvironmentFile=%h/.config/spotify-touch/pi.env
+ExecStart=%h/.local/share/spotify-touch/launch-viewer.sh
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=15
@@ -270,8 +270,8 @@ After=pipewire-pulse.service
 
 [Service]
 Type=simple
-EnvironmentFile=%h/.config/spotifytouch/pi.env
-ExecStart=%h/.local/share/spotify-appliance-v2-kiosk/launch-audio.sh
+EnvironmentFile=%h/.config/spotify-touch/pi.env
+ExecStart=%h/.local/share/spotify-touch/launch-audio.sh
 Restart=on-failure
 RestartSec=3
 # Intentionally no Install section. The controller starts/stops audio.
@@ -286,8 +286,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-EnvironmentFile=%h/.config/spotifytouch/pi.env
-ExecStart=%h/.local/share/spotify-appliance-v2-kiosk/launch-tunnel.sh
+EnvironmentFile=%h/.config/spotify-touch/pi.env
+ExecStart=%h/.local/share/spotify-touch/launch-tunnel.sh
 Restart=always
 RestartSec=5
 
@@ -382,7 +382,7 @@ def configure_ubuntu(args):
         state = run(['podman','inspect','-f','{{.State.Running}}',container],capture=True).stdout.strip()
         if state.lower() != 'true':
             fail('Existing Spotify Headless container must be running.')
-    tx = Transaction('ubuntu', ['spotify-touch-api.service'] + (['spotifytouch-headless.service'] if mode == 'create' else []))
+    tx = Transaction('ubuntu', ['spotify-touch-api.service'] + (['spotify-touch-headless.service'] if mode == 'create' else []))
     created = False
     try:
         if mode == 'create':
@@ -394,9 +394,9 @@ def configure_ubuntu(args):
                  '-v', f'{vol}:/data', '-e', 'AUTO_LOGIN_CLICK=true', image])
             created = True
             tx.container_created = container
-            user_unit(tx,'spotifytouch-headless.service',unit_ubuntu_container(container))
+            user_unit(tx,'spotify-touch-headless.service',unit_ubuntu_container(container))
             run(['systemctl','--user','daemon-reload'])
-            run(['systemctl','--user','enable','--now','spotifytouch-headless.service'])
+            run(['systemctl','--user','enable','--now','spotify-touch-headless.service'])
         if created:
             import time
             for _ in range(20):
@@ -407,22 +407,22 @@ def configure_ubuntu(args):
                 fail('New Spotify Headless container did not become executable')
         # Back up the existing CDP bridge stored in the container's persistent /data.
         existing_bridge = run(['podman','exec',container,'test','-f',
-                               '/data/spotify-touch-v2/cdp-helper.js'],check=False).returncode == 0
+                               '/data/spotify-touch/cdp-helper.js'],check=False).returncode == 0
         if existing_bridge:
             tx.folder.mkdir(parents=True,exist_ok=True)
-            run(['podman','cp',f'{container}:/data/spotify-touch-v2/cdp-helper.js',
+            run(['podman','cp',f'{container}:/data/spotify-touch/cdp-helper.js',
                  str(tx.folder/'original-cdp-helper.js')])
         tx.container_bridge={'container':container,'old_exists':existing_bridge,'new_container':created}
         tx.manifest()
-        run(['podman', 'exec', '-u', '0', container, 'mkdir', '-p', '/data/spotify-touch-v2'])
-        run(['podman','cp',str(ROOT/'src/ubuntu/cdp-helper.js'), f'{container}:/data/spotify-touch-v2/cdp-helper.js'])
+        run(['podman', 'exec', '-u', '0', container, 'mkdir', '-p', '/data/spotify-touch'])
+        run(['podman','cp',str(ROOT/'src/ubuntu/cdp-helper.js'), f'{container}:/data/spotify-touch/cdp-helper.js'])
         tx.copy(ROOT/'src/ubuntu/server.py', APP_UBUNTU/'server.py')
         for path in sorted((ROOT/'src/ubuntu/web').iterdir()):
             if path.is_file():
-                tx.copy(path, APP_UBUNTU/'web'/path.name)
+                tx.copy(path, APP_UBUNTU/path.name)
         tx.save(CONFIG/'ubuntu.env', env_file({
             'SPOTIFY_CONTAINER_NAME':container,
-            'SPOTIFY_BRIDGE_PATH':'/data/spotify-touch-v2/cdp-helper.js',
+            'SPOTIFY_BRIDGE_PATH':'/data/spotify-touch/cdp-helper.js',
             'SPOTIFY_TOUCH_PORT':str(CONTROL_PORT),
         }), mode=0o600)
         user_unit(tx,'spotify-touch-api.service',unit_ubuntu())
@@ -494,7 +494,7 @@ def configure_pi(args):
     if not choose_confirmation(args, summary):
         return
     # A fresh-install wizard must not change the current appliance, including SSH keys.
-    if (APP_PI/'switchd.py').exists() or (USER_UNITS/'spotify-appliance-switch.service').exists():
+    if (APP_PI/'switchd.py').exists() or (USER_UNITS/'spotify-touch-switch.service').exists():
         fail('Existing SpotifyTouch kiosk detected. This installer is for new setups only.')
     for tool in ('systemctl','ssh','python3','mpv','curl','labwc'):
         which(tool)
@@ -543,11 +543,11 @@ def configure_pi(args):
         run(ssh_check)
     if not Path('/usr/share/wayland-sessions/labwc.desktop').exists() and not Path('/usr/share/wayland-sessions/rpd-labwc.desktop').exists():
         fail('Pi needs a configured labwc/Wayland session. Install/enable labwc first.')
-    unit_names = ['spotify-appliance-switch.service','spotify-appliance-kiosk.service',
-                  'spotify-appliance-audio.service','spotify-tunnel.service']
+    unit_names = ['spotify-touch-switch.service','spotify-touch-kiosk.service',
+                  'spotify-touch-audio.service','spotify-touch-tunnel.service']
     tx = Transaction('pi',unit_names)
     mm_launcher=mm_dir/'installers/mm.sh'
-    marker=HOME/'.config/spotify-appliance-v2-kiosk/enabled'
+    marker=HOME/'.config/spotify-touch/enabled'
     try:
         for name in unit_names:
             run(['systemctl','--user','stop',name],check=False)
@@ -569,10 +569,10 @@ def configure_pi(args):
             'SPOTIFY_CONTROL_PORT':str(CONTROL_PORT),
             'SPOTIFY_SWITCH_PORT':str(SWITCH_PORT),
         }),0o600)
-        user_unit(tx,'spotify-appliance-switch.service',unit_pi_switch())
-        user_unit(tx,'spotify-appliance-kiosk.service',unit_pi_kiosk())
-        user_unit(tx,'spotify-appliance-audio.service',unit_pi_audio())
-        user_unit(tx,'spotify-tunnel.service',unit_pi_tunnel())
+        user_unit(tx,'spotify-touch-switch.service',unit_pi_switch())
+        user_unit(tx,'spotify-touch-kiosk.service',unit_pi_kiosk())
+        user_unit(tx,'spotify-touch-audio.service',unit_pi_audio())
+        user_unit(tx,'spotify-touch-tunnel.service',unit_pi_tunnel())
         if profile=='companion':
             mm_module=mm_dir/'modules/MMM-SpotifyTouch'
             for name in ['MMM-SpotifyTouch.js','MMM-SpotifyTouch.css','node_helper.js','spotify-glyph.svg']:
@@ -583,7 +583,7 @@ def configure_pi(args):
                 tx.save(mm_dir/'config/config.js',amended)
                 run(['node','--check',str(mm_dir/'config/config.js')])
             current=mm_launcher.read_text()
-            if '# spotify-appliance-v2-kiosk: managed server-only branch' not in current:
+            if '# spotify-touch: managed server-only branch' not in current:
                 # Existing migration script has the exact guard we validated on the Pi.
                 # It assumes MagicMirror at ~/MagicMirror. Non-default paths are not portable yet.
                 if mm_dir != HOME/'MagicMirror':
@@ -597,8 +597,8 @@ def configure_pi(args):
             tx.save(marker,'',0o600)
         tx.manifest()
         run(['systemctl','--user','daemon-reload'])
-        run(['systemctl','--user','enable','--now','spotify-tunnel.service'])
-        run(['systemctl','--user','enable','--now','spotify-appliance-switch.service'])
+        run(['systemctl','--user','enable','--now','spotify-touch-tunnel.service'])
+        run(['systemctl','--user','enable','--now','spotify-touch-switch.service'])
         if profile=='companion':
             # Preserve the registered PM2 process; never run electron.js through Node.
             existing = run(['pm2','jlist'],capture=True)
@@ -615,7 +615,7 @@ def configure_pi(args):
             if not ready:
                 fail('MagicMirror server-only did not respond on IPv6 ::1:8080')
             run(['pm2','save'])
-        run(['systemctl','--user','enable','--now','spotify-appliance-kiosk.service'])
+        run(['systemctl','--user','enable','--now','spotify-touch-kiosk.service'])
         ok=False
         for _ in range(90):
             if probe_http(f'http://127.0.0.1:{SWITCH_PORT}/health',timeout=1)==200:
@@ -635,7 +635,7 @@ def configure_pi(args):
     print('\nPi configuration installed. Check:')
     print(f'  curl http://127.0.0.1:{SWITCH_PORT}/health')
     print(f'  curl http://127.0.0.1:{CONTROL_PORT}/api?action=health')
-    print('  systemctl --user status spotify-tunnel.service spotify-appliance-kiosk.service')
+    print('  systemctl --user status spotify-touch-tunnel.service spotify-touch-kiosk.service')
     print('  Enable minimal labwc only AFTER touch, Bluetooth and kiosk have been tested:')
     print(f'  bash {APP_PI}/minimal-session.sh --check')
     print(f'  bash {APP_PI}/minimal-session.sh --enable   # then reboot after confirming SSH access')
