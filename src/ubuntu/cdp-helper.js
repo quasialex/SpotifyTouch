@@ -96,6 +96,13 @@ async function execute(req){
       case 'previous':await S.Player.back();return response(null);
       case 'play':{
         if(!/^spotify:(track|album|playlist|artist):[A-Za-z0-9]+$/.test(req.uri||''))throw Error('Invalid Spotify URI');
+        // Liked Songs uses the manual Next queue. Explicitly starting another
+        // collection must discard that queue before Spotify builds the new context.
+        if(req.contextUri!=='spotify:collection:tracks'){
+          const clearQueue=S.Platform.PlayerAPI?.clearQueue;
+          if(typeof clearQueue!=='function')throw Error('Spotify queue API unavailable');
+          await clearQueue();
+        }
         if(req.contextUri){
           // Spicetify's documented context argument. This tells Spotify which
           // collection Next / automatic playback should continue from.
